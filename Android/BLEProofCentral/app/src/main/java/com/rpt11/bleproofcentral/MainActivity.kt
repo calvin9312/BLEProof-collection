@@ -289,7 +289,7 @@ class MainActivity : AppCompatActivity() {
             appendLog("onScanResult name=$name address= ${result.device?.address}")
             safeStopBleScan()
             lifecycleState = BLELifecycleState.Connecting
-            result.device.connectGatt(this@MainActivity, false, gattCallback)
+            result.device.connectGatt(this@MainActivity, false, gattCallback, 2)
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
@@ -319,10 +319,14 @@ class MainActivity : AppCompatActivity() {
                     // TODO: bonding state
 
                     // recommended on UI thread https://punchthrough.com/android-ble-guide/
-                    Handler(Looper.getMainLooper()).post {
+//                    Handler(Looper.getMainLooper()).post {
+//                        lifecycleState = BLELifecycleState.ConnectedDiscovering
+//                        gatt.discoverServices()
+//                    }
+                    Handler(Looper.getMainLooper()).postDelayed({
                         lifecycleState = BLELifecycleState.ConnectedDiscovering
                         gatt.discoverServices()
-                    }
+                    }, 100)
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     appendLog("Disconnected from $deviceAddress")
                     setConnectedGattToNull()
@@ -350,12 +354,14 @@ class MainActivity : AppCompatActivity() {
                 // https://medium.com/@martijn.van.welie/making-android-ble-work-part-2-47a3cdaade07
                 appendLog("ERROR: status=129 (GATT_INTERNAL_ERROR), disconnecting")
                 gatt.disconnect()
+                gatt.close()
                 return
             }
 
             val service = gatt.getService(UUID.fromString(SERVICE_UUID)) ?: run {
                 appendLog("ERROR: Service not found $SERVICE_UUID, disconnecting")
                 gatt.disconnect()
+                gatt.close()
                 return
             }
 
